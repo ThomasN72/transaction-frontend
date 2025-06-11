@@ -2,8 +2,8 @@ import { gql } from "@apollo/client";
 
 // Query to fetch all transactions
 const GET_TRANSACTIONS = gql`
-  query GetTransaction {
-    transactions {
+  query GetTransactions($customerId: Int!) {
+    transactions(customerId: $customerId) {
       id
       name
       amount
