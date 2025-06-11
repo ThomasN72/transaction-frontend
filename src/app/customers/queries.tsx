@@ -8,6 +8,10 @@ const GET_TRANSACTIONS = gql`
       name
       amount
       currency
+      customer {
+        name
+      }
+      date
     }
   }
 `;
@@ -28,7 +32,9 @@ const CREATE_TRANSACTION = gql`
   mutation CreateTransaction($input: CreateTransactionDto!) {
     createTransaction(input: $input) {
       name
-      customerId
+      customer {
+        id
+      }
       amount
       date
     }

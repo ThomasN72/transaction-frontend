@@ -37,7 +37,9 @@ export default function TransactionPage() {
   const customerId = Number(id);
 
   const [transactionData, setTransactionData] = useState<any[]>([]);
-  const [amount, setAmount] = useState<any[]>([]);
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState(0.0);
+  const [currency, setCurrency] = useState("USD");
   // Create a single Socket.IO connection
   const socket = useMemo(() => io("http://localhost:3001"), []);
 
@@ -51,67 +53,37 @@ export default function TransactionPage() {
     skip: !customerId,
   });
 
-  // Process historical CPU data
-  useEffect(() => {
-    if (transactionQueryData) {
-      console.log("Transaction Query Data:", transactionQueryData);
-      setTransactionData(
-        transactionQueryData.transactions.map((entry: any) => ({
-          date: new Date(entry.date).toLocaleTimeString(),
-          amount: entry.amount,
-        }))
-      );
-    }
+  const chartData = useMemo(() => {
+    return transactionQueryData?.transactions.map((tx: any) => ({
+      // X axis will use this:
+      time: new Date(tx.date).toLocaleDateString(),
+
+      // Y axis / your <Line dataKey> will use this:
+      usage: tx.amount,
+    }));
   }, [transactionQueryData]);
-
-  // Socket subscriptions for dynamic updates
-  // useEffect(() => {
-  //   if (!customerId) return;
-
-  //   // Subscribe once
-  //   socket.emit("subscribe", { customerId });
-
-  //   // CPU updates
-  //   socket.on("cpuUpdate", (newData: any) => {
-  //     console.log("cpuUpdate", newData);
-  //     setCpuData((prev) => [
-  //       ...prev.slice(-30),
-  //       {
-  //         time: new Date(newData.timestamp || Date.now()).toLocaleTimeString(),
-  //         usage: newData.usagePercentage,
-  //       },
-  //     ]);
-  //   });
-
-  //   return () => {
-  //     socket.off("cpuUpdate");
-  //     socket.disconnect();
-  //   };
-  // }, [instanceId]);
-
   const handleCreateTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    // try {
-    //   await createTransaction({
-    //     variables: { input: { name, ip } },
-    //   });
-    //   setName("");
-    //   setIp("");
-    //   refetch(); // Re-fetch the list of instances to update the UI
-    // } catch (err) {
-    //   console.error("Error creating instance:", err);
-    // }
+    try {
+      await createTransaction({
+        variables: { input: { name, amount, currency, customerId: id } },
+      });
+      setName("");
+      setAmount(0);
+      setCurrency("");
+    } catch (err) {
+      console.error("Error creating instance:", err);
+    }
   };
 
   if (transactionLoading) return <p>Loading...</p>;
   if (transactionError) return <p>Error loading data</p>;
 
-  // Colors for the disk pie chart
-  const pieColors = ["#8884d8", "#82ca9d"];
-
   return (
     <div className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Customer {id} Metrics</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        {transactionData?.[0]?.customer?.name} Metrics
+      </h2>
       <h3 className="mt-8 text-xl font-semibold">Create New Transaction</h3>
       <form
         onSubmit={handleCreateTransaction}
@@ -119,10 +91,26 @@ export default function TransactionPage() {
       >
         <input
           type="text"
+          placeholder="Transaction Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="border p-2 mb-2 text-indigo-600"
+          required
+        />
+        <input
+          type="text"
           placeholder="amount"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="border p-2 mb-2"
+          onChange={(e) => setAmount(Number(e.target.value))}
+          className="border p-2 mb-2 text-indigo-600"
+          required
+        />
+        <input
+          type="text"
+          placeholder="currency"
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="border p-2 mb-2 text-indigo-600"
           required
         />
         <button
@@ -132,11 +120,10 @@ export default function TransactionPage() {
           Create Transaction
         </button>
       </form>
-      {/* CPU Usage Section */}
       <div className="mt-6">
         <h3 className="text-lg font-semibold">Transactions</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={transactionData}>
+          <LineChart data={chartData}>
             <XAxis dataKey="time" />
             <YAxis domain={[0, 100]} />
             <Tooltip />
