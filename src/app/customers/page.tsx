@@ -6,7 +6,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 export default function CustomerList() {
-  const { loading, error, data } = useQuery(GET_CUSTOMERS);
+  const { loading, error, data } = useQuery(GET_CUSTOMERS, {
+    fetchPolicy: "network-only",
+  });
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredCustomers = useMemo(() => {
